@@ -151,14 +151,89 @@ NanoServe utilizes a **Thread Pool** architecture to handle concurrent connectio
 ## 🚀 Getting Started
 
 ### Prerequisites
-* GCC or Clang
-* Make
-* Linux/macOS (POSIX compliant)
+* **Compiler**: GCC or Clang with C99 support
+* **Build Tool**: GNU Make
+* **Platform**: Linux or macOS (POSIX compliant)
+* **Optional**: Valgrind (for memory leak detection)
+
+### Project Structure
+
+```
+c-http-implementation/
+├── src/                    # Source files (.c)
+│   └── main.c             # Entry point
+├── include/               # Header files (.h)
+│   ├── listener.h         # TCP listener
+│   ├── dispatcher.h       # Connection dispatcher
+│   ├── queue.h            # Thread-safe queue
+│   ├── threadpool.h       # Worker thread pool
+│   ├── http_parser.h      # HTTP request parser
+│   ├── http_response.h    # HTTP response builder
+│   ├── fileserver.h       # Static file server
+│   ├── logger.h           # Logging subsystem
+│   └── utils.h            # Utility functions
+├── bin/                   # Build output (executable)
+├── www/                   # Document root (static files)
+│   └── index.html         # Default welcome page
+├── tests/                 # Unit tests
+├── Makefile              # Build configuration
+└── README.md             # This file
+```
 
 ### Build and Run
 
+**Clone and build:**
 ```bash
-git clone [https://github.com/YOUR_USERNAME/nanoserve-c.git](https://github.com/YOUR_USERNAME/nanoserve-c.git)
-cd nanoserve-c
+git clone https://github.com/YOUR_USERNAME/c-http-implementation.git
+cd c-http-implementation
 make
+```
+
+**Run the server:**
+```bash
 ./bin/nanoserve
+```
+
+**Test in browser:**
+```
+http://localhost:8080
+```
+
+**Test with curl:**
+```bash
+curl http://localhost:8080
+curl http://localhost:8080/index.html
+```
+
+### Build Targets
+
+* `make` or `make all` - Build the server
+* `make clean` - Remove build artifacts
+* `make debug` - Build with debug symbols (`-g`)
+* `make run` - Build and run the server
+* `make test` - Run unit tests (when implemented)
+
+### Configuration
+
+**Port**: Default is 8080 (configurable in code or via command-line)
+**Worker Threads**: Default is 8 threads
+**Document Root**: `./www` directory
+**Queue Size**: 256 connections
+
+### Development Status
+
+This project is currently in development. Check [TASKS.md](TASKS.md) for the implementation roadmap.
+
+**Completed:**
+- ✅ Project structure and build system setup
+- ✅ Architecture design and documentation
+
+**In Progress:**
+- 🔄 Core component implementation
+- 🔄 HTTP protocol handling
+- 🔄 Static file serving
+
+**Planned:**
+- ⏳ Error handling and logging
+- ⏳ Testing and validation
+- ⏳ Performance optimization

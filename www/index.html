@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NanoServe - Welcome</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 2.5em;
+        }
+        .status {
+            background: #4ade80;
+            color: #064e3b;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: inline-block;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        ul {
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 NanoServe</h1>
+        <div class="status">✓ Server Running</div>
+
+        <p>Welcome to <strong>NanoServe</strong> - a lightweight, multi-threaded HTTP server written entirely in C from scratch!</p>
+
+        <div class="info">
+            <h2>Features</h2>
+            <ul>
+                <li>Thread Pool Architecture</li>
+                <li>HTTP/1.1 Protocol Support</li>
+                <li>Static File Serving</li>
+                <li>MIME Type Detection</li>
+                <li>Concurrent Request Handling</li>
+                <li>Thread-Safe Logging</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <h2>Architecture</h2>
+            <p>NanoServe uses a producer-consumer pattern with:</p>
+            <ul>
+                <li><strong>Listener:</strong> Binds to port 8080</li>
+                <li><strong>Dispatcher:</strong> Accepts connections</li>
+                <li><strong>Queue:</strong> Thread-safe FIFO task queue</li>
+                <li><strong>Workers:</strong> Pool of threads processing requests</li>
+            </ul>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 0.9em; opacity: 0.8;">
+            Built with ❤️ using only the C standard library and POSIX APIs
+        </p>
+    </div>
+</body>
+</html>
