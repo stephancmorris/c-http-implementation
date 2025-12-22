@@ -1,9 +1,9 @@
 # NanoServe Makefile
-# Lightweight HTTP server in C
+# High-Reliability Idempotent HTTP Server
 
 # Compiler and flags
 CC := gcc
-CFLAGS := -Wall -Wextra -Werror -std=c99 -pthread -I./include
+CFLAGS := -Wall -Wextra -Werror -std=c11 -pthread -I./include
 LDFLAGS := -pthread
 
 # Directories
