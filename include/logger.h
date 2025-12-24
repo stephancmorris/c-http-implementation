@@ -48,6 +48,16 @@ void log_message(logger_t *logger, log_level_t level, const char *format, ...);
 const char *log_level_to_string(log_level_t level);
 
 /*
+ * Get global logger instance
+ */
+logger_t *logger_get_global(void);
+
+/*
+ * Set global logger minimum level
+ */
+void logger_set_level(log_level_t level);
+
+/*
  * Cleanup logger resources
  */
 void logger_destroy(logger_t *logger);
