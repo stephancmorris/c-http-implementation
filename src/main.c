@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include "logger.h"
 #include "listener.h"
+#include "connection.h"
 
 /* Global listener for signal handler */
 static listener_t g_listener;
@@ -67,9 +68,11 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        /* Connection accepted - for now, just close it immediately */
+        /* Connection accepted - handle the request */
         /* TODO: Hand off to thread pool for processing */
-        LOG_DEBUG(NULL, "Closing client connection (fd=%d) - no handler yet", client_fd);
+        connection_handle(client_fd);
+
+        /* Close the connection */
         close(client_fd);
     }
 
