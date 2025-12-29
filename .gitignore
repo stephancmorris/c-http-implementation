@@ -58,6 +58,7 @@ dkms.conf
 PROJECT_SPEC.md
 TASKS.md
 C_DEVELOPMENT_GUIDE.md
+IMPLEMENTATION_NOTES.md
 
 # Build directory
 bin/
