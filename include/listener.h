@@ -13,6 +13,7 @@ typedef struct {
     uint16_t port;          /* Port to bind to (default: 8080) */
     int backlog;            /* Connection backlog (default: 128) */
     int socket_fd;          /* Listener socket file descriptor */
+    int shutdown_pipe[2];   /* Pipe for shutdown signaling (self-pipe trick) */
 } listener_t;
 
 /*
@@ -32,6 +33,12 @@ int listener_start(listener_t *listener);
  * Returns client socket FD on success, -1 on error
  */
 int listener_accept(listener_t *listener);
+
+/*
+ * Signal listener to shutdown (wakes up accept())
+ * Returns 0 on success, -1 on error
+ */
+int listener_shutdown(listener_t *listener);
 
 /*
  * Close listener socket and cleanup

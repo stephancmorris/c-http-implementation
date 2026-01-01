@@ -10,7 +10,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -28,8 +30,21 @@ int listener_init(listener_t *listener, uint16_t port, int backlog) {
     listener->port = port;
     listener->backlog = backlog;
     listener->socket_fd = -1;
+    listener->shutdown_pipe[0] = -1;
+    listener->shutdown_pipe[1] = -1;
 
-    LOG_DEBUG(NULL, "Listener initialized: port=%d, backlog=%d", port, backlog);
+    /* Create shutdown pipe (self-pipe trick) */
+    if (pipe(listener->shutdown_pipe) < 0) {
+        LOG_ERROR(NULL, "Failed to create shutdown pipe: %s", strerror(errno));
+        return -1;
+    }
+
+    /* Make pipe non-blocking */
+    int flags = fcntl(listener->shutdown_pipe[0], F_GETFL, 0);
+    fcntl(listener->shutdown_pipe[0], F_SETFL, flags | O_NONBLOCK);
+
+    LOG_DEBUG(NULL, "Listener initialized: port=%d, backlog=%d, shutdown_pipe=[%d,%d]",
+              port, backlog, listener->shutdown_pipe[0], listener->shutdown_pipe[1]);
     return 0;
 }
 
@@ -93,8 +108,8 @@ int listener_start(listener_t *listener) {
 }
 
 /*
- * Accept incoming connection
- * Returns client socket FD on success, -1 on error
+ * Accept incoming connection (uses select() for interruptible wait)
+ * Returns client socket FD on success, -1 on error, -2 on shutdown signal
  */
 int listener_accept(listener_t *listener) {
     if (listener == NULL || listener->socket_fd < 0) {
@@ -102,40 +117,87 @@ int listener_accept(listener_t *listener) {
         return -1;
     }
 
-    struct sockaddr_in client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
+    /* Use select() to wait for either:
+     * 1. Incoming connection on socket_fd
+     * 2. Shutdown signal on shutdown_pipe[0]
+     */
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(listener->socket_fd, &read_fds);
+    FD_SET(listener->shutdown_pipe[0], &read_fds);
 
-    /* Accept connection (blocks until client connects) */
-    int client_fd = accept(listener->socket_fd,
-                           (struct sockaddr *)&client_addr,
-                           &client_addr_len);
+    int max_fd = (listener->socket_fd > listener->shutdown_pipe[0])
+                  ? listener->socket_fd
+                  : listener->shutdown_pipe[0];
 
-    if (client_fd < 0) {
-        /* Check for specific error conditions */
+    /* Wait indefinitely for activity */
+    int ready = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+
+    if (ready < 0) {
         if (errno == EINTR) {
-            /* Interrupted by signal, can retry */
-            LOG_DEBUG(NULL, "accept() interrupted by signal");
+            /* Interrupted by signal */
+            LOG_DEBUG(NULL, "select() interrupted by signal");
             return -1;
-        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            /* Would block (for non-blocking sockets) */
-            LOG_DEBUG(NULL, "accept() would block");
-            return -1;
-        } else {
-            /* Actual error */
+        }
+        LOG_ERROR(NULL, "select() failed: %s", strerror(errno));
+        return -1;
+    }
+
+    /* Check if shutdown was signaled */
+    if (FD_ISSET(listener->shutdown_pipe[0], &read_fds)) {
+        char buf[1];
+        read(listener->shutdown_pipe[0], buf, 1);  /* Drain pipe */
+        LOG_DEBUG(NULL, "Shutdown signal received via pipe");
+        return -2;  /* Special return code for shutdown */
+    }
+
+    /* Accept incoming connection */
+    if (FD_ISSET(listener->socket_fd, &read_fds)) {
+        struct sockaddr_in client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+
+        int client_fd = accept(listener->socket_fd,
+                               (struct sockaddr *)&client_addr,
+                               &client_addr_len);
+
+        if (client_fd < 0) {
             LOG_ERROR(NULL, "accept() failed: %s", strerror(errno));
             return -1;
         }
+
+        /* Get client IP and port for logging */
+        char client_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+        uint16_t client_port = ntohs(client_addr.sin_port);
+
+        LOG_INFO(NULL, "Accepted connection from %s:%d (fd=%d)",
+                 client_ip, client_port, client_fd);
+
+        return client_fd;
     }
 
-    /* Get client IP and port for logging */
-    char client_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
-    uint16_t client_port = ntohs(client_addr.sin_port);
+    /* Should not reach here */
+    return -1;
+}
 
-    LOG_INFO(NULL, "Accepted connection from %s:%d (fd=%d)",
-             client_ip, client_port, client_fd);
+/*
+ * Signal listener to shutdown (wakes up accept())
+ * Returns 0 on success, -1 on error
+ */
+int listener_shutdown(listener_t *listener) {
+    if (listener == NULL || listener->shutdown_pipe[1] < 0) {
+        return -1;
+    }
 
-    return client_fd;
+    /* Write to pipe to wake up select() in listener_accept() */
+    char signal = 1;
+    if (write(listener->shutdown_pipe[1], &signal, 1) < 0) {
+        LOG_ERROR(NULL, "Failed to write to shutdown pipe: %s", strerror(errno));
+        return -1;
+    }
+
+    LOG_DEBUG(NULL, "Shutdown signal sent to listener");
+    return 0;
 }
 
 /*
@@ -146,10 +208,21 @@ void listener_destroy(listener_t *listener) {
         return;
     }
 
+    /* Close listening socket */
     if (listener->socket_fd >= 0) {
         LOG_DEBUG(NULL, "Closing listener socket (fd=%d)", listener->socket_fd);
         close(listener->socket_fd);
         listener->socket_fd = -1;
+    }
+
+    /* Close shutdown pipe */
+    if (listener->shutdown_pipe[0] >= 0) {
+        close(listener->shutdown_pipe[0]);
+        listener->shutdown_pipe[0] = -1;
+    }
+    if (listener->shutdown_pipe[1] >= 0) {
+        close(listener->shutdown_pipe[1]);
+        listener->shutdown_pipe[1] = -1;
     }
 
     LOG_INFO(NULL, "Listener destroyed");

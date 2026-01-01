@@ -22,6 +22,9 @@ void signal_handler(int signum) {
     (void)signum;
     LOG_INFO(NULL, "Shutdown signal received...");
     g_running = 0;
+
+    /* Wake up listener_accept() immediately */
+    listener_shutdown(&g_listener);
 }
 
 int main(int argc, char *argv[]) {
@@ -59,6 +62,12 @@ int main(int argc, char *argv[]) {
         LOG_DEBUG(NULL, "Waiting for incoming connection...");
 
         int client_fd = listener_accept(&g_listener);
+
+        if (client_fd == -2) {
+            /* Shutdown signal received via pipe */
+            LOG_DEBUG(NULL, "Shutdown requested, exiting accept loop");
+            break;
+        }
 
         if (client_fd < 0) {
             /* Error or interrupted - check if we should continue */

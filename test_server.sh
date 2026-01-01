@@ -69,14 +69,12 @@ stop_server() {
         print_info "Stopping server (PID: $SERVER_PID)..."
         kill -TERM $SERVER_PID 2>/dev/null || true
 
-        # Send wake-up request to unblock accept()
-        echo "QUIT" | nc localhost $PORT > /dev/null 2>&1 || true
-
-        # Wait for graceful shutdown
+        # Wait for graceful shutdown (now instant with self-pipe trick)
         sleep 1
 
-        # Force kill if still running
+        # Force kill if still running (should not be necessary now)
         if ps -p $SERVER_PID > /dev/null 2>&1; then
+            print_info "Server did not shutdown gracefully, force killing..."
             kill -9 $SERVER_PID 2>/dev/null || true
         fi
 
