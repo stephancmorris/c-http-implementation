@@ -133,3 +133,101 @@ const char *http_get_header(const http_request_t *request, const char *name) {
 
     return NULL;  /* Header not found */
 }
+
+/*
+ * Parse HTTP request line
+ * Example: "POST /api/payment HTTP/1.1"
+ * Returns 0 on success, -1 on error
+ */
+int parse_request_line(http_request_t *request, const char *line) {
+    if (request == NULL || line == NULL) {
+        LOG_ERROR(NULL, "parse_request_line: NULL parameter");
+        return -1;
+    }
+
+    /* Create a mutable copy of the line for parsing */
+    char line_copy[MAX_URI_LENGTH + 256];  /* METHOD + URI + VERSION + spaces */
+    size_t line_len = strlen(line);
+
+    if (line_len >= sizeof(line_copy)) {
+        LOG_ERROR(NULL, "Request line too long: %zu bytes", line_len);
+        return -1;
+    }
+
+    strncpy(line_copy, line, sizeof(line_copy) - 1);
+    line_copy[sizeof(line_copy) - 1] = '\0';
+
+    /* Remove trailing \r\n if present */
+    char *newline = strchr(line_copy, '\r');
+    if (newline) *newline = '\0';
+    newline = strchr(line_copy, '\n');
+    if (newline) *newline = '\0';
+
+    /* Parse method (first token) */
+    char *saveptr = NULL;
+    char *method_str = strtok_r(line_copy, " ", &saveptr);
+    if (method_str == NULL) {
+        LOG_ERROR(NULL, "Missing HTTP method in request line");
+        return -1;
+    }
+
+    /* Convert method string to enum */
+    request->method = http_string_to_method(method_str);
+    if (request->method == HTTP_METHOD_UNKNOWN) {
+        LOG_WARN(NULL, "Unknown HTTP method: %s", method_str);
+        /* Continue parsing - we'll handle unknown methods */
+    }
+
+    /* Parse URI (second token) */
+    char *uri_str = strtok_r(NULL, " ", &saveptr);
+    if (uri_str == NULL) {
+        LOG_ERROR(NULL, "Missing URI in request line");
+        return -1;
+    }
+
+    /* Validate URI format (must start with /) */
+    if (uri_str[0] != '/') {
+        LOG_ERROR(NULL, "Invalid URI format (must start with /): %s", uri_str);
+        return -1;
+    }
+
+    /* Copy URI to request structure */
+    size_t uri_len = strlen(uri_str);
+    if (uri_len >= MAX_URI_LENGTH) {
+        LOG_ERROR(NULL, "URI too long: %zu bytes (max %d)", uri_len, MAX_URI_LENGTH);
+        return -1;
+    }
+    strncpy(request->uri, uri_str, MAX_URI_LENGTH - 1);
+    request->uri[MAX_URI_LENGTH - 1] = '\0';
+
+    /* Parse HTTP version (third token) */
+    char *version_str = strtok_r(NULL, " ", &saveptr);
+    if (version_str == NULL) {
+        LOG_ERROR(NULL, "Missing HTTP version in request line");
+        return -1;
+    }
+
+    /* Parse HTTP version */
+    if (strcmp(version_str, "HTTP/1.1") == 0) {
+        request->version = HTTP_VERSION_1_1;
+    } else if (strcmp(version_str, "HTTP/1.0") == 0) {
+        request->version = HTTP_VERSION_1_0;
+    } else {
+        LOG_ERROR(NULL, "Unsupported HTTP version: %s", version_str);
+        request->version = HTTP_VERSION_UNKNOWN;
+        return -1;
+    }
+
+    /* Check for extra tokens (malformed request) */
+    char *extra = strtok_r(NULL, " ", &saveptr);
+    if (extra != NULL) {
+        LOG_WARN(NULL, "Extra data in request line: %s", extra);
+    }
+
+    LOG_DEBUG(NULL, "Parsed request line: %s %s %s",
+              http_method_to_string(request->method),
+              request->uri,
+              http_version_to_string(request->version));
+
+    return 0;
+}
