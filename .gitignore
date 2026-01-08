@@ -60,6 +60,7 @@ TASKS.md
 C_DEVELOPMENT_GUIDE.md
 IMPLEMENTATION_NOTES.md
 TEST_RESULTS.md
+claude.md
 
 # Build directory
 bin/
