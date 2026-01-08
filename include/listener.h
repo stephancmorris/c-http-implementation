@@ -1,5 +1,5 @@
 /*
- * NanoServe - TCP Socket Listener
+ * C-HTTP Payment Server - TCP Socket Listener
  * Handles socket creation, binding, and listening for incoming connections
  */
 

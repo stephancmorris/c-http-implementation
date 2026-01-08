@@ -1,5 +1,5 @@
 /*
- * NanoServe - HTTP Parser Implementation
+ * C-HTTP Payment Server - HTTP Parser Implementation
  * Parses HTTP/1.1 requests with POST body and idempotency key support
  */
 

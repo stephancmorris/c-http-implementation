@@ -1,5 +1,5 @@
 /*
- * NanoServe - High-Reliability Idempotent HTTP Server
+ * C-HTTP Payment Server - High-Reliability Idempotent HTTP Server
  * Main entry point
  */
 

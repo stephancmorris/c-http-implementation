@@ -1,4 +1,4 @@
-# NanoServe Makefile
+# C-HTTP Payment Server Makefile
 # High-Reliability Idempotent HTTP Server
 
 # Compiler and flags
@@ -13,7 +13,7 @@ BIN_DIR := bin
 OBJ_DIR := $(BIN_DIR)/obj
 
 # Target executable
-TARGET := $(BIN_DIR)/nanoserve
+TARGET := $(BIN_DIR)/c-http-payment-server
 
 # Source files (currently only main.c, will expand as we add implementations)
 SOURCES := $(wildcard $(SRC_DIR)/*.c)
@@ -68,7 +68,7 @@ release: clean $(TARGET)
 # Run the server
 .PHONY: run
 run: $(TARGET)
-	@echo "Starting NanoServe..."
+	@echo "Starting C-HTTP Payment Server..."
 	@$(TARGET)
 
 # Test target (placeholder for future tests)
@@ -80,7 +80,7 @@ test:
 # Help target
 .PHONY: help
 help:
-	@echo "NanoServe Build System"
+	@echo "C-HTTP Payment Server Build System"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all      - Build the server (default)"

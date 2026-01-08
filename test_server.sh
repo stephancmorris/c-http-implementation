@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# NanoServe HTTP Server Test Suite
+# C-HTTP Payment Server HTTP Server Test Suite
 # Story 2.3: Basic Request/Response Test
 
 # Colors for output
@@ -40,14 +40,14 @@ print_info() {
 
 # Start the server
 start_server() {
-    print_info "Starting NanoServe on port $PORT..."
+    print_info "Starting C-HTTP Payment Server on port $PORT..."
 
     # Build the server first
     make clean > /dev/null 2>&1
     make all > /dev/null 2>&1
 
     # Start server in background
-    ./bin/nanoserve > /tmp/nanoserve_test.log 2>&1 &
+    ./bin/c-http-payment-server > /tmp/c-http-payment-server_test.log 2>&1 &
     SERVER_PID=$!
 
     # Wait for server to be ready
@@ -56,7 +56,7 @@ start_server() {
     # Check if server is running
     if ! ps -p $SERVER_PID > /dev/null; then
         echo -e "${RED}ERROR: Server failed to start${NC}"
-        cat /tmp/nanoserve_test.log
+        cat /tmp/c-http-payment-server_test.log
         exit 1
     fi
 
@@ -102,7 +102,7 @@ run_test() {
 
 echo ""
 echo "=========================================="
-echo "  NanoServe HTTP Server Test Suite"
+echo "  C-HTTP Payment Server HTTP Server Test Suite"
 echo "  Story 2.3: Request/Response Testing"
 echo "=========================================="
 echo ""
@@ -119,7 +119,7 @@ echo ""
 # Test 1: Basic GET request
 run_test "Basic GET request to /"
 RESPONSE=$(curl -s http://localhost:$PORT/)
-if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
     print_pass "Received valid HTML response"
 else
     print_fail "Invalid response: $RESPONSE"
@@ -128,7 +128,7 @@ fi
 # Test 2: GET with different path
 run_test "GET request to /test"
 RESPONSE=$(curl -s http://localhost:$PORT/test)
-if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
     print_pass "Server responds to different paths"
 else
     print_fail "Failed to respond to /test"
@@ -160,7 +160,7 @@ run_test "Multiple sequential requests"
 SUCCESS=0
 for i in {1..5}; do
     RESPONSE=$(curl -s http://localhost:$PORT/request$i)
-    if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+    if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
         ((SUCCESS++))
     fi
 done
@@ -179,7 +179,7 @@ echo ""
 # Test 5: POST request
 run_test "POST request"
 RESPONSE=$(curl -s -X POST -d "test=data" http://localhost:$PORT/submit)
-if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
     print_pass "Server accepts POST requests"
 else
     print_fail "Server failed to handle POST"
@@ -188,7 +188,7 @@ fi
 # Test 6: PUT request
 run_test "PUT request"
 RESPONSE=$(curl -s -X PUT -d "update=data" http://localhost:$PORT/resource)
-if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
     print_pass "Server accepts PUT requests"
 else
     print_fail "Server failed to handle PUT"
@@ -197,7 +197,7 @@ fi
 # Test 7: DELETE request
 run_test "DELETE request"
 RESPONSE=$(curl -s -X DELETE http://localhost:$PORT/resource)
-if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
     print_pass "Server accepts DELETE requests"
 else
     print_fail "Server failed to handle DELETE"
@@ -212,7 +212,7 @@ echo ""
 # Test 8: Large request headers
 run_test "Request with large headers"
 RESPONSE=$(curl -s -H "X-Large-Header: $(head -c 1000 /dev/zero | tr '\0' 'A')" http://localhost:$PORT/)
-if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
     print_pass "Handles large headers"
 else
     print_fail "Failed to handle large headers"
@@ -221,7 +221,7 @@ fi
 # Test 9: Query parameters
 run_test "Request with query parameters"
 RESPONSE=$(curl -s "http://localhost:$PORT/search?q=test&page=1&limit=10")
-if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
     print_pass "Handles query parameters"
 else
     print_fail "Failed to handle query parameters"
@@ -230,7 +230,7 @@ fi
 # Test 10: Special characters in URL
 run_test "URL with special characters"
 RESPONSE=$(curl -s "http://localhost:$PORT/path/with%20spaces/and-dashes_underscores")
-if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
     print_pass "Handles special characters in URL"
 else
     print_fail "Failed to handle special characters"
@@ -248,7 +248,7 @@ START_TIME=$(date +%s)
 SUCCESS=0
 for i in {1..10}; do
     RESPONSE=$(curl -s http://localhost:$PORT/rapid$i)
-    if echo "$RESPONSE" | grep -q "NanoServe v2.0"; then
+    if echo "$RESPONSE" | grep -q "C-HTTP Payment Server v2.0"; then
         ((SUCCESS++))
     fi
 done

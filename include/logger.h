@@ -1,5 +1,5 @@
 /*
- * NanoServe - Logging Subsystem
+ * C-HTTP Payment Server - Logging Subsystem
  * Thread-safe logging with multiple log levels
  */
 

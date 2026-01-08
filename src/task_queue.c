@@ -1,5 +1,5 @@
 /*
- * NanoServe - Thread-Safe Task Queue
+ * C-HTTP Payment Server - Thread-Safe Task Queue
  * FIFO queue for distributing client connections to worker threads
  */
 

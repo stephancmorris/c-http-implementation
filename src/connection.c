@@ -1,5 +1,5 @@
 /*
- * NanoServe - Connection Handler
+ * C-HTTP Payment Server - Connection Handler
  * Handles reading from and writing to client connections
  */
 

@@ -4,15 +4,15 @@
 ![Status](https://img.shields.io/badge/status-active-success)
 ![Focus](https://img.shields.io/badge/focus-distributed%20systems-orange)
 
-**NanoServe** is a multi-threaded, non-blocking HTTP server built from scratch in C. 
+**C-HTTP Payment Server** is a multi-threaded, non-blocking HTTP server built from scratch in C. 
 
-Unlike standard web servers, NanoServe is engineered specifically for **transactional reliability**. It implements an **application-agnostic Idempotency Layer** directly into the server lifecycle, guaranteeing that critical requests (like payment captures or ledger updates) are never processed twice, even in the event of network retries or client failures.
+Unlike standard web servers, C-HTTP Payment Server is engineered specifically for **transactional reliability**. It implements an **application-agnostic Idempotency Layer** directly into the server lifecycle, guaranteeing that critical requests (like payment captures or ledger updates) are never processed twice, even in the event of network retries or client failures.
 
 ## 🚀 Motivation
 
 In distributed payment systems (e.g., ISO8583 gateways, payment switches), network timeouts often cause clients to retry requests. Without idempotency, this leads to "double-spend" anomalies. 
 
-While many developers solve this at the *application* layer (database constraints), NanoServe solves it at the *infrastructure* layer. By handling deduplication in memory before the request reaches the business logic, we reduce database load and guarantee consistency at the protocol level.
+While many developers solve this at the *application* layer (database constraints), C-HTTP Payment Server solves it at the *infrastructure* layer. By handling deduplication in memory before the request reaches the business logic, we reduce database load and guarantee consistency at the protocol level.
 
 ## ✨ Key Features
 
@@ -59,6 +59,6 @@ The core differentiator is a custom thread-safe Hash Map designed for this serve
 
 ### Installation
 ```bash
-git clone [https://github.com/stephanmorris/nanoserve.git](https://github.com/stephanmorris/nanoserve.git)
-cd nanoserve
+git clone [https://github.com/stephanmorris/c-http-payment-server.git](https://github.com/stephanmorris/c-http-payment-server.git)
+cd c-http-payment-server
 make

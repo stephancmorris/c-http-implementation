@@ -1,5 +1,5 @@
 /*
- * NanoServe - Thread Pool
+ * C-HTTP Payment Server - Thread Pool
  * Pool of worker threads for concurrent request processing
  */
 
