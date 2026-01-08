@@ -231,3 +231,170 @@ int parse_request_line(http_request_t *request, const char *line) {
 
     return 0;
 }
+
+/*
+ * Helper function: Trim leading and trailing whitespace from string
+ * Modifies string in place
+ */
+static void trim_whitespace(char *str) {
+    if (str == NULL || *str == '\0') {
+        return;
+    }
+
+    /* Trim leading whitespace */
+    char *start = str;
+    while (*start == ' ' || *start == '\t' || *start == '\r' || *start == '\n') {
+        start++;
+    }
+
+    /* Trim trailing whitespace */
+    char *end = start + strlen(start) - 1;
+    while (end > start && (*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
+        end--;
+    }
+    *(end + 1) = '\0';
+
+    /* Move trimmed string to beginning if needed */
+    if (start != str) {
+        memmove(str, start, strlen(start) + 1);
+    }
+}
+
+/*
+ * Parse HTTP headers section
+ * Example header section:
+ *   "Host: example.com\r\n"
+ *   "Content-Length: 123\r\n"
+ *   "X-Idempotency-Key: abc123\r\n"
+ *   "\r\n"
+ * Returns 0 on success, -1 on error
+ */
+int parse_headers(http_request_t *request, const char *header_section) {
+    if (request == NULL || header_section == NULL) {
+        LOG_ERROR(NULL, "parse_headers: NULL parameter");
+        return -1;
+    }
+
+    /* Initialize header-related fields */
+    request->header_count = 0;
+    request->content_length = 0;
+    request->has_idempotency_key = false;
+    request->idempotency_key[0] = '\0';
+
+    /* Create a mutable copy of the header section */
+    char *header_copy = strdup(header_section);
+    if (header_copy == NULL) {
+        LOG_ERROR(NULL, "Failed to allocate memory for header copy");
+        return -1;
+    }
+
+    /* Parse headers line by line */
+    char *saveptr = NULL;
+    char *line = strtok_r(header_copy, "\r\n", &saveptr);
+
+    while (line != NULL) {
+        /* Skip empty lines (signals end of headers) */
+        if (strlen(line) == 0) {
+            break;
+        }
+
+        /* Find the colon separator */
+        char *colon = strchr(line, ':');
+        if (colon == NULL) {
+            LOG_WARN(NULL, "Malformed header line (missing colon): %s", line);
+            line = strtok_r(NULL, "\r\n", &saveptr);
+            continue;
+        }
+
+        /* Split into name and value */
+        *colon = '\0';  /* Terminate name string */
+        char *name = line;
+        char *value = colon + 1;
+
+        /* Trim whitespace from both parts */
+        trim_whitespace(name);
+        trim_whitespace(value);
+
+        /* Validate header name length */
+        size_t name_len = strlen(name);
+        if (name_len == 0) {
+            LOG_WARN(NULL, "Empty header name");
+            line = strtok_r(NULL, "\r\n", &saveptr);
+            continue;
+        }
+        if (name_len >= MAX_HEADER_NAME_LENGTH) {
+            LOG_ERROR(NULL, "Header name too long: %zu bytes (max %d)",
+                      name_len, MAX_HEADER_NAME_LENGTH);
+            free(header_copy);
+            return -1;
+        }
+
+        /* Validate header value length */
+        size_t value_len = strlen(value);
+        if (value_len >= MAX_HEADER_VALUE_LENGTH) {
+            LOG_WARN(NULL, "Header value too long: %zu bytes (max %d), truncating",
+                     value_len, MAX_HEADER_VALUE_LENGTH);
+            value[MAX_HEADER_VALUE_LENGTH - 1] = '\0';
+            value_len = MAX_HEADER_VALUE_LENGTH - 1;
+        }
+
+        /* Check if we've exceeded maximum header count */
+        if (request->header_count >= MAX_HEADERS) {
+            LOG_ERROR(NULL, "Too many headers: maximum %d headers allowed", MAX_HEADERS);
+            free(header_copy);
+            return -1;
+        }
+
+        /* Store header in array */
+        strncpy(request->headers[request->header_count].name, name,
+                MAX_HEADER_NAME_LENGTH - 1);
+        request->headers[request->header_count].name[MAX_HEADER_NAME_LENGTH - 1] = '\0';
+
+        strncpy(request->headers[request->header_count].value, value,
+                MAX_HEADER_VALUE_LENGTH - 1);
+        request->headers[request->header_count].value[MAX_HEADER_VALUE_LENGTH - 1] = '\0';
+
+        LOG_DEBUG(NULL, "Parsed header: %s: %s", name, value);
+
+        /* Check for special headers (case-insensitive) */
+
+        /* X-Idempotency-Key header */
+        if (strcasecmp(name, "X-Idempotency-Key") == 0) {
+            size_t key_len = strlen(value);
+            if (key_len >= MAX_IDEMPOTENCY_KEY_LENGTH) {
+                LOG_WARN(NULL, "Idempotency key too long: %zu bytes (max %d), truncating",
+                         key_len, MAX_IDEMPOTENCY_KEY_LENGTH);
+                value[MAX_IDEMPOTENCY_KEY_LENGTH - 1] = '\0';
+            }
+            strncpy(request->idempotency_key, value, MAX_IDEMPOTENCY_KEY_LENGTH - 1);
+            request->idempotency_key[MAX_IDEMPOTENCY_KEY_LENGTH - 1] = '\0';
+            request->has_idempotency_key = true;
+            LOG_DEBUG(NULL, "Extracted Idempotency-Key: %s", request->idempotency_key);
+        }
+
+        /* Content-Length header */
+        if (strcasecmp(name, "Content-Length") == 0) {
+            char *endptr;
+            unsigned long content_len = strtoul(value, &endptr, 10);
+
+            /* Validate conversion */
+            if (*endptr != '\0') {
+                LOG_WARN(NULL, "Invalid Content-Length value: %s", value);
+                request->content_length = 0;
+            } else {
+                request->content_length = (size_t)content_len;
+                LOG_DEBUG(NULL, "Extracted Content-Length: %zu bytes", request->content_length);
+            }
+        }
+
+        request->header_count++;
+
+        /* Move to next line */
+        line = strtok_r(NULL, "\r\n", &saveptr);
+    }
+
+    free(header_copy);
+
+    LOG_INFO(NULL, "Parsed %d headers successfully", request->header_count);
+    return 0;
+}
