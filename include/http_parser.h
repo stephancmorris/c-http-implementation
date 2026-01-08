@@ -112,6 +112,13 @@ int parse_request_line(http_request_t *request, const char *line);
 int parse_headers(http_request_t *request, const char *header_section);
 
 /*
+ * Parse HTTP request body (POST/PUT support)
+ * Reads Content-Length bytes from socket file descriptor
+ * Returns 0 on success, -1 on error
+ */
+int parse_request_body(http_request_t *request, int socket_fd);
+
+/*
  * Get header value by name (case-insensitive)
  * Returns pointer to value string, or NULL if not found
  */

@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <strings.h>  /* For strcasecmp */
+#include <errno.h>    /* For errno */
+#include <sys/socket.h>  /* For recv() */
 
 /*
  * Initialize HTTP request structure
@@ -396,5 +398,89 @@ int parse_headers(http_request_t *request, const char *header_section) {
     free(header_copy);
 
     LOG_INFO(NULL, "Parsed %d headers successfully", request->header_count);
+    return 0;
+}
+
+/*
+ * Parse HTTP request body (POST/PUT support)
+ * Reads Content-Length bytes from socket file descriptor
+ * Returns 0 on success, -1 on error
+ */
+int parse_request_body(http_request_t *request, int socket_fd) {
+    if (request == NULL) {
+        LOG_ERROR(NULL, "parse_request_body: NULL request pointer");
+        return -1;
+    }
+
+    if (socket_fd < 0) {
+        LOG_ERROR(NULL, "parse_request_body: Invalid socket file descriptor");
+        return -1;
+    }
+
+    /* Initialize body fields */
+    request->body = NULL;
+    request->body_length = 0;
+
+    /* Check if Content-Length is set */
+    if (request->content_length == 0) {
+        /* No body to read (valid for GET, HEAD, OPTIONS) */
+        LOG_DEBUG(NULL, "No Content-Length specified, skipping body read");
+        return 0;
+    }
+
+    /* Validate body size against maximum limit */
+    if (request->content_length > MAX_REQUEST_BODY_SIZE) {
+        LOG_ERROR(NULL, "Request body too large: %zu bytes (max %d bytes)",
+                  request->content_length, MAX_REQUEST_BODY_SIZE);
+        return -1;  /* Caller should return HTTP 413 Payload Too Large */
+    }
+
+    LOG_DEBUG(NULL, "Reading request body: %zu bytes", request->content_length);
+
+    /* Allocate buffer for body (+1 for null terminator) */
+    request->body = (char *)malloc(request->content_length + 1);
+    if (request->body == NULL) {
+        LOG_ERROR(NULL, "Failed to allocate %zu bytes for request body",
+                  request->content_length);
+        return -1;
+    }
+
+    /* Read body from socket in loop (handle partial reads) */
+    size_t total_read = 0;
+    while (total_read < request->content_length) {
+        size_t remaining = request->content_length - total_read;
+        ssize_t bytes_read = recv(socket_fd,
+                                   request->body + total_read,
+                                   remaining,
+                                   0);
+
+        if (bytes_read < 0) {
+            /* Error reading from socket */
+            LOG_ERROR(NULL, "Error reading request body from socket: %s",
+                      strerror(errno));
+            free(request->body);
+            request->body = NULL;
+            return -1;
+        }
+
+        if (bytes_read == 0) {
+            /* Connection closed before reading complete body */
+            LOG_ERROR(NULL, "Connection closed after reading %zu of %zu bytes",
+                      total_read, request->content_length);
+            free(request->body);
+            request->body = NULL;
+            return -1;
+        }
+
+        total_read += bytes_read;
+        LOG_DEBUG(NULL, "Read %zd bytes from socket (%zu / %zu total)",
+                  bytes_read, total_read, request->content_length);
+    }
+
+    /* Null-terminate body (for JSON/text processing) */
+    request->body[request->content_length] = '\0';
+    request->body_length = request->content_length;
+
+    LOG_INFO(NULL, "Successfully read request body: %zu bytes", request->body_length);
     return 0;
 }
