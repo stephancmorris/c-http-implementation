@@ -1,5 +1,5 @@
 /*
- * NanoServe - HTTP Response Builder
+ * C-HTTP Payment Server - HTTP Response Builder
  * Builds HTTP/1.1 responses
  */
 
@@ -12,6 +12,9 @@
 #define HTTP_OK                  200
 #define HTTP_BAD_REQUEST         400
 #define HTTP_NOT_FOUND           404
+#define HTTP_CONFLICT            409
+#define HTTP_PAYLOAD_TOO_LARGE   413
+#define HTTP_UNPROCESSABLE       422
 #define HTTP_INTERNAL_ERROR      500
 #define HTTP_NOT_IMPLEMENTED     501
 
