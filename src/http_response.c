@@ -274,6 +274,56 @@ char *http_response_serialize(http_response_t *response, size_t *out_length) {
 }
 
 /*
+ * Create error response with JSON error body
+ * Returns 0 on success, -1 on error
+ */
+int http_response_create_error(http_response_t *response, int status_code, const char *error_message) {
+    if (response == NULL || error_message == NULL) {
+        LOG_ERROR(NULL, "http_response_create_error: NULL parameter");
+        return -1;
+    }
+
+    /* Initialize response with error status code */
+    int result = http_response_init(response, status_code);
+    if (result != 0) {
+        return -1;
+    }
+
+    /* Add Content-Type: application/json header */
+    result = http_response_add_header(response, "Content-Type", "application/json");
+    if (result != 0) {
+        http_response_free(response);
+        return -1;
+    }
+
+    /* Create JSON error body */
+    char error_body[1024];
+    int written = snprintf(error_body, sizeof(error_body),
+                          "{\"error\":\"%s\",\"status\":%d,\"message\":\"%s\"}",
+                          error_message,
+                          status_code,
+                          status_code_to_message(status_code));
+
+    if (written < 0 || (size_t)written >= sizeof(error_body)) {
+        LOG_ERROR(NULL, "Failed to format error response body");
+        http_response_free(response);
+        return -1;
+    }
+
+    /* Set body */
+    result = http_response_set_body(response, error_body, strlen(error_body));
+    if (result != 0) {
+        http_response_free(response);
+        return -1;
+    }
+
+    LOG_INFO(NULL, "Created error response: %d %s - %s",
+             status_code, status_code_to_message(status_code), error_message);
+
+    return 0;
+}
+
+/*
  * Free HTTP response resources
  */
 void http_response_free(http_response_t *response) {

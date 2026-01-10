@@ -60,6 +60,12 @@ char *http_response_serialize(http_response_t *response, size_t *out_length);
 const char *status_code_to_message(int status_code);
 
 /*
+ * Create error response with JSON error body
+ * Returns 0 on success, -1 on error
+ */
+int http_response_create_error(http_response_t *response, int status_code, const char *error_message);
+
+/*
  * Free HTTP response resources
  */
 void http_response_free(http_response_t *response);
