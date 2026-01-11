@@ -10,11 +10,11 @@
 #include <stdbool.h>
 
 /* Maximum limits for request components */
-#define MAX_HEADERS 64
+#define MAX_HEADERS 32
 #define MAX_URI_LENGTH 2048
-#define MAX_HEADER_NAME_LENGTH 256
-#define MAX_HEADER_VALUE_LENGTH 8192
-#define MAX_IDEMPOTENCY_KEY_LENGTH 256
+#define MAX_HEADER_NAME_LENGTH 128
+#define MAX_HEADER_VALUE_LENGTH 4096
+#define MAX_IDEMPOTENCY_KEY_LENGTH 128
 #define MAX_REQUEST_BODY_SIZE (1024 * 1024)  /* 1MB */
 
 /*
